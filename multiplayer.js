@@ -177,6 +177,25 @@ function mpApplyState(data) {
         }
     }
 
+    // Ensure player token elements are created in DOM on guest side
+    var tokensLayer = document.getElementById("tokens-layer");
+    if (tokensLayer && gameConfig.players) {
+        var existingTokens = tokensLayer.querySelectorAll(".player-token");
+        if (existingTokens.length !== gameConfig.players.length) {
+            tokensLayer.innerHTML = "";
+            gameConfig.players.forEach(function(p) {
+                var el = document.createElement("div");
+                el.className = "player-token";
+                el.id = "token-" + p.id;
+                el.style.color = p.color;
+                el.style.borderColor = p.color;
+                el.style.boxShadow = "0 10px 15px rgba(0, 0, 0, 0.5), 0 0 15px " + p.color;
+                el.innerText = p.token || "🚀";
+                tokensLayer.appendChild(el);
+            });
+        }
+    }
+
     activePlayerIdx = data.activePlayerIdx;
     turnCount       = data.turnCount;
     isRolling       = data.isRolling;
