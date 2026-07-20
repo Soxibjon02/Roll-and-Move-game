@@ -214,13 +214,16 @@ function mpSendActionToHost(action) {
 // 4. HOST LOGIKASI
 // =================================================
 function mpCreateRoom() {
+    var nickInput = document.getElementById("mp-nickname-input");
+    var hostNickname = nickInput ? nickInput.value.trim() : "";
+    if (!hostNickname) hostNickname = "Host";
+
     var btn = document.getElementById("btn-create-room");
     if (btn) btn.disabled = true;
     mpSetStatus("Tayyorlanmoqda...", "#ffd700");
 
     if (mpPeer) { try { mpPeer.destroy(); } catch(e) {} mpPeer = null; }
 
-    // Tasodifiy 6 xonali unikal xona kodini yaratamiz
     var code = Math.random().toString(36).substring(2, 8).toUpperCase();
     var customPeerId = "HAINIM-" + code;
 
@@ -244,13 +247,31 @@ function mpCreateRoom() {
             mpSetStatus(mpConnections.length + " o yinchi ulandi", "#00f0ff");
             mpUpdatePeersList();
             conn.send({ type: "ASSIGN_PLAYER", playerIdx: guestIdx });
-            if (typeof gameConfig !== "undefined" && gameConfig.players && gameConfig.players.length > 1) {
-                conn.send(mpSerializeState());
+            
+            // Set host name in players list
+            if (typeof gameConfig !== "undefined" && gameConfig.players && gameConfig.players[0]) {
+                gameConfig.players[0].name = hostNickname;
             }
         });
 
         conn.on("data", function(data) {
             if (!data) return;
+            
+            // Sync nickname from guest
+            if (data.type === "SET_NICKNAME") {
+                var idx = data.playerIdx;
+                var nick = data.nickname || ("Mehmon " + idx);
+                if (typeof gameConfig !== "undefined" && gameConfig.players) {
+                    if (!gameConfig.players[idx]) {
+                        gameConfig.players[idx] = { id: idx, position: 0, checkpoint: 0, skipNextTurn: false };
+                    }
+                    gameConfig.players[idx].name = nick;
+                }
+                // Broadcast updated player list
+                mpBroadcastState();
+                return;
+            }
+
             if (data.type === "ACTION" && data.action === "ROLL") {
                 if (data.playerIdx === activePlayerIdx && !isRolling && !isMoving) {
                     if (typeof triggerRollProcess === "function") triggerRollProcess();
@@ -296,6 +317,16 @@ function mpJoinRoom(shortCode) {
             mpIsOnline = true;
             mpSetStatus("Host bilan ulandi", "#00ff88");
             mpUpdatePeersList();
+
+            // Send nickname to host
+            var nickInput = document.getElementById("mp-nickname-input");
+            var guestNickname = nickInput ? nickInput.value.trim() : "";
+            if (!guestNickname) guestNickname = "Mehmon " + mpMyPlayerIdx;
+            mpHostConn.send({
+                type: "SET_NICKNAME",
+                playerIdx: mpMyPlayerIdx,
+                nickname: guestNickname
+            });
         });
 
         mpHostConn.on("data", function(data) {
@@ -304,6 +335,16 @@ function mpJoinRoom(shortCode) {
             if (data.type === "ASSIGN_PLAYER") {
                 mpMyPlayerIdx = data.playerIdx;
                 mpSetStatus("Ulandi - " + (data.playerIdx + 1) + "-o yinchi", "#00ff88");
+                
+                // Re-send nickname once ID is assigned
+                var nickInput = document.getElementById("mp-nickname-input");
+                var guestNickname = nickInput ? nickInput.value.trim() : "";
+                if (!guestNickname) guestNickname = "Mehmon " + mpMyPlayerIdx;
+                mpHostConn.send({
+                    type: "SET_NICKNAME",
+                    playerIdx: mpMyPlayerIdx,
+                    nickname: guestNickname
+                });
                 return;
             }
 
@@ -366,18 +407,39 @@ function mpJoinRoom(shortCode) {
     };
 })();
 
-// Roll tugmasi - GUEST bo sa HOST ga so rov yuboradi
+// Roll tugmasi - Navbatga qarab Host va Guestni bloklaydi
 function mpSetupRollInterceptor() {
     var rollBtn = document.getElementById("roll-dice-btn");
     if (!rollBtn) return;
+    
     rollBtn.addEventListener("click", function(e) {
-        if (!mpIsOnline || mpIsHost) return;
-        e.stopImmediatePropagation();
-        if (activePlayerIdx !== mpMyPlayerIdx) {
-            alert("Bu sizning navbatingiz emas!"); return;
+        if (!mpIsOnline) return;
+        
+        var isMyTurn = (activePlayerIdx === mpMyPlayerIdx);
+        if (!isMyTurn) {
+            e.stopImmediatePropagation();
+            alert("Bu sizning navbatingiz emas!");
+            return;
         }
-        mpSendActionToHost({ action: "ROLL", playerIdx: mpMyPlayerIdx });
+        
+        if (!mpIsHost) {
+            // Guest -> sends roll request to Host
+            e.stopImmediatePropagation();
+            mpSendActionToHost({ action: "ROLL", playerIdx: mpMyPlayerIdx });
+        }
     }, true);
+
+    // Manual roll tugmalarini ham intercept qilamiz
+    document.querySelectorAll(".btn-manual-roll").forEach(function(btn) {
+        btn.addEventListener("click", function(e) {
+            if (!mpIsOnline) return;
+            var isMyTurn = (activePlayerIdx === mpMyPlayerIdx);
+            if (!isMyTurn) {
+                e.stopImmediatePropagation();
+                alert("Bu sizning navbatingiz emas!");
+            }
+        }, true);
+    });
 }
 
 // =================================================
