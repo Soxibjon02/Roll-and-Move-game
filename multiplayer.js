@@ -387,11 +387,22 @@ function mpJoinRoom(shortCode) {
             if (data.type === "GAME_START") {
                 var mpModal = document.getElementById("multiplayer-modal");
                 if (mpModal) mpModal.classList.remove("active");
+                
                 // Switch screens for guest
                 var setupEl2 = document.getElementById("setup-screen");
                 var gameEl2  = document.getElementById("game-screen");
                 if (setupEl2) setupEl2.classList.remove("active");
                 if (gameEl2)  gameEl2.classList.add("active");
+
+                // Show settings gear for guest too
+                var gear = document.querySelector(".settings-dropdown");
+                if (gear) gear.classList.remove("hidden");
+
+                // Hide host-only restart and new match buttons from guest's dropdown
+                var btnRestart = document.getElementById("btn-restart");
+                var btnNewMatch = document.getElementById("btn-new-match");
+                if (btnRestart) btnRestart.style.display = "none";
+                if (btnNewMatch) btnNewMatch.style.display = "none";
                 return;
             }
         });
