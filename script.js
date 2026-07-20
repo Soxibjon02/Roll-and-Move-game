@@ -762,7 +762,7 @@ function initSetup() {
             <div style="color: ${playerColors[i]}; font-family: var(--font-sci-fi); font-weight: bold;">
                 Explorer ${i + 1}
             </div>
-            <input type="text" value="Explorer ${i + 1}" id="p-name-${i}">
+            <input type="text" placeholder="Ismingizni kiriting..." id="p-name-${i}">
             <div class="token-selector">
                 ${tokens.map((tok, idx) => `
                     <div class="token-opt ${idx === tokenIdx ? 'selected' : ''}" data-player="${i}" data-index="${idx}">${tok}</div>
@@ -844,7 +844,7 @@ document.getElementById("start-game-btn").addEventListener("click", () => {
         
         gameConfig.players.push({
             id: i,
-            name: nameInput.value || `Explorer ${i + 1}`,
+            name: nameInput.value.trim() || `Explorer ${i + 1}`,
             color: playerColors[i],
             token: tokenChar,
             position: 0,
