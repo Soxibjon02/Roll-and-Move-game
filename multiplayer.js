@@ -34,6 +34,7 @@ const MP_CONFIG = {
             { urls: "stun:stun2.l.google.com:19302" },
             { urls: "stun:stun3.l.google.com:19302" },
             { urls: "stun:stun4.l.google.com:19302" },
+            { urls: "stun:global.stun.twilio.com:3478?transport=udp" },
             { urls: "stun:stun.relay.metered.ca:80" },
             {
                 urls: [
@@ -348,7 +349,7 @@ function mpJoinRoom(shortCode) {
 
     mpPeer.on("open", function() {
         var hostPeerId = "HAINIM-" + shortCode;
-        mpHostConn = mpPeer.connect(hostPeerId, { reliable: true });
+        mpHostConn = mpPeer.connect(hostPeerId, { reliable: true, serialization: "json" });
 
         mpHostConn.on("open", function() {
             mpIsOnline = true;
