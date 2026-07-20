@@ -1849,3 +1849,19 @@ body.light-mode .btn-online {
     border-color: rgba(0, 119, 182, 0.5);
     color: #0077b6;
 }
+
+/* Mobil moslashuvchanlik - Onlayn o'yin oynasi */
+@media (max-width: 480px) {
+    .mp-join-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+    .mp-join-row .btn {
+        width: 100%;
+        padding: 12px;
+    }
+    .mp-modal-content {
+        padding: 20px 15px;
+    }
+}
+
