@@ -187,16 +187,18 @@ function mpCreateRoom() {
 
     if (mpPeer) { try { mpPeer.destroy(); } catch(e) {} mpPeer = null; }
 
-    mpPeer        = new Peer(undefined, MP_CONFIG);
+    // Tasodifiy 6 xonali unikal xona kodini yaratamiz
+    var code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    var customPeerId = "HAINIM-" + code;
+
+    mpPeer        = new Peer(customPeerId, MP_CONFIG);
     mpIsHost      = true;
     mpMyPlayerIdx = 0;
 
     mpPeer.on("open", function(id) {
-        var shortCode = id.slice(0, 8).toUpperCase();
-        document.getElementById("room-code-value").textContent = shortCode;
+        document.getElementById("room-code-value").textContent = code;
         document.getElementById("room-code-display").classList.remove("hidden");
         document.getElementById("mp-waiting-msg").classList.remove("hidden");
-        localStorage.setItem("mp_room_" + shortCode, id);
         mpSetStatus("Xona tayyor - kutmoqda", "#00ff88");
         mpUpdatePeersList();
     });
@@ -254,7 +256,7 @@ function mpJoinRoom(shortCode) {
     mpIsHost = false;
 
     mpPeer.on("open", function() {
-        var hostPeerId = localStorage.getItem("mp_room_" + shortCode) || shortCode;
+        var hostPeerId = "HAINIM-" + shortCode;
         mpHostConn = mpPeer.connect(hostPeerId, { reliable: true });
 
         mpHostConn.on("open", function() {
