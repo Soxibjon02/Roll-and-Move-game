@@ -201,6 +201,11 @@ function mpApplyState(data) {
     isRolling       = data.isRolling;
     isMoving        = data.isMoving;
 
+    // playersCount ni ham sinxronlashtirish (3+ o'yinchi uchun muhim)
+    if (data.players && gameConfig) {
+        gameConfig.playersCount = data.players.length;
+    }
+
     if (data.specialTiles) {
         try { gameConfig.specialTiles = JSON.parse(data.specialTiles); } catch(e) {}
     }
@@ -292,8 +297,13 @@ function mpCreateRoom() {
             }
 
             if (data.type === "ACTION" && data.action === "ROLL") {
+                // Navbat to'g'ri ekanligini va o'yin harakatsizligini tekshirish
                 if (data.playerIdx === activePlayerIdx && !isRolling && !isMoving) {
-                    if (typeof triggerRollProcess === "function") triggerRollProcess();
+                    if (typeof triggerRollProcess === "function") {
+                        triggerRollProcess();
+                        // Boshqa GUEST lar ham darhol bloklash uchun holat yuboriladi
+                        setTimeout(mpBroadcastState, 50);
+                    }
                 }
             }
         });

@@ -983,7 +983,17 @@ document.querySelectorAll(".btn-manual-roll").forEach(btn => {
 });
 
 function triggerRollProcess() {
+    // Guard: o'yinchi mavjudligini tekshirish
+    if (!gameConfig || !gameConfig.players || activePlayerIdx < 0 || activePlayerIdx >= gameConfig.players.length) {
+        console.warn("triggerRollProcess: notog'ri activePlayerIdx =", activePlayerIdx);
+        return;
+    }
+    // isRolling yoki isMoving bo'lsa qayta boshlashni oldini olish
+    if (isRolling || isMoving) return;
+
     const curP = gameConfig.players[activePlayerIdx];
+    if (!curP) return;
+
     if (curP.skipNextTurn) {
         curP.skipNextTurn = false;
         logEvent(`${curP.name} muzlab qolgan edi. Navbatni o'tkazib yuboradi!`);
@@ -1101,9 +1111,12 @@ function movePlayer(playerIdx, steps, isChainMove = false) {
 
         playSound("snd-move", "move");
         
+        // Token elementi mavjud bo'lmasa crash bo'lmasin
         const tokEl = document.getElementById(`token-${p.id}`);
-        tokEl.classList.add("moving");
-        setTimeout(() => tokEl.classList.remove("moving"), 500);
+        if (tokEl) {
+            tokEl.classList.add("moving");
+            setTimeout(() => tokEl.classList.remove("moving"), 500);
+        }
 
         syncTokenPositions(true);
         updateHUD();
@@ -1141,33 +1154,54 @@ function handleCellLanding(p) {
             case "warpgate":
             case "wormhole":
             case "bonus4":
-            case "bonus6":
+            case "bonus6": {
+                // Zanjir harakat: isChainMove=true, faqat bir marta nextTurn
+                const chainSteps = tile.move || 0;
                 playSound("snd-boost", "boost");
-                movePlayer(activePlayerIdx, tile.move, true);
-                setTimeout(nextTurn, Math.abs(tile.move) * 600 + 400);
+                if (chainSteps !== 0) {
+                    movePlayer(activePlayerIdx, chainSteps, true);
+                    setTimeout(nextTurn, Math.abs(chainSteps) * 600 + 400);
+                } else {
+                    nextTurn();
+                }
                 break;
+            }
             case "meteor":
             case "blackhole":
             case "trap3":
             case "trap5":
-            case "trap6":
+            case "trap6": {
+                const trapSteps = tile.move || 0;
                 playSound("snd-teleport", "teleport");
-                movePlayer(activePlayerIdx, tile.move, true);
-                setTimeout(nextTurn, Math.abs(tile.move) * 600 + 400);
+                if (trapSteps !== 0) {
+                    movePlayer(activePlayerIdx, trapSteps, true);
+                    setTimeout(nextTurn, Math.abs(trapSteps) * 600 + 400);
+                } else {
+                    nextTurn();
+                }
                 break;
+            }
             case "spacestation":
+                // O'yinchi YANA zar tashlasin — isMoving=false qilishimiz kerak
+                // Onlayn rejimda HOST triggerRollProcess ni qayta chaqiradi
                 playSound("snd-boost", "boost");
+                isMoving = false;
+                skipCurrentMoveFn = null;
                 logEvent(`${p.name} yana bir marta zar tashlaydi!`);
-                updateHUD();
+                updateHUD(); // Bu broadcast qiladi va Guest ham biladi
+                // Guest bo'lsa host yana ACTION:ROLL kutadi;
+                // Host bo'lsa tugmani enable qiladi
                 break;
             case "frozen":
                 p.skipNextTurn = true;
+                isMoving = false;
                 nextTurn();
                 break;
-            case "storm":
+            case "storm": {
                 const backSteps = p.checkpoint - p.position;
                 if (backSteps === 0) {
                     logEvent(`${p.name} allaqachon Checkpoint ${p.checkpoint} da xavfsiz.`);
+                    isMoving = false;
                     nextTurn();
                 } else {
                     playSound("snd-teleport", "teleport");
@@ -1175,6 +1209,7 @@ function handleCellLanding(p) {
                     setTimeout(nextTurn, Math.abs(backSteps) * 600 + 400);
                 }
                 break;
+            }
             case "supernova":
                 playSound("snd-boost", "boost");
                 gameConfig.players.forEach(otherP => {
@@ -1186,10 +1221,12 @@ function handleCellLanding(p) {
                     }
                 });
                 syncTokenPositions(false);
+                isMoving = false;
                 updateHUD();
                 nextTurn();
                 break;
             default:
+                isMoving = false;
                 nextTurn();
         }
     }, 1500);
