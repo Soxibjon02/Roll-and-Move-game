@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HA INIM: Qiziqarli Sarguzasht O'yini</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- PeerJS: peer-to-peer WebRTC library (server talab qilinmaydi) -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+</head>
+<body class="theme-space">
+    <!-- Global Boshqaruv Tugmalari (Yuqori o'ng burchakda) -->
+    <div class="global-controls">
+        <button id="btn-theme-mode" class="btn btn-secondary btn-icon" title="Tungi/Kunduzgi rejim">🌙</button>
+        <div class="settings-dropdown hidden">
+            <button id="btn-settings-toggle" class="btn btn-secondary btn-icon" title="Sozlamalar">⚙️</button>
+            <div id="settings-dropdown-content" class="dropdown-content glass-panel">
+                <button id="btn-restart" class="dropdown-item">🔄 Qayta yuklash</button>
+                <button id="btn-new-match" class="dropdown-item">🏠 Yangi O'yin</button>
+                <button id="btn-rules" class="dropdown-item">📜 Qoidalar</button>
+                <button id="btn-sound" class="dropdown-item">🔊 Ovozni o'chirish</button>
+                <button id="btn-fullscreen" class="dropdown-item">📺 To'liq ekran</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kosmik Audio Elementlari -->
+    <audio id="snd-dice" src="dice.mp3" preload="auto"></audio>
+    <audio id="snd-move" src="move.mp3" preload="auto"></audio>
+    <audio id="snd-boost" src="boost.mp3" preload="auto"></audio>
+    <audio id="snd-teleport" src="teleport.mp3" preload="auto"></audio>
+    <audio id="snd-winner" src="winner.mp3" preload="auto"></audio>
+    <audio id="snd-hover" src="hover.mp3" preload="auto"></audio>
+
+    <!-- Dinamik Mavzular uchun fon elementlari -->
+    <div class="stars-container">
+        <div id="stars"></div>
+        <div id="stars2"></div>
+        <div id="stars3"></div>
+        <div class="nebula"></div>
+    </div>
+    <div class="jungle-leaves-container hidden"></div>
+    <div class="city-skyline-container hidden"></div>
+
+    <!-- ASOSIY MENYU VA SOZLAMALAR -->
+    <div id="setup-screen" class="screen active">
+        <div class="setup-card glass-panel">
+            <h1 class="game-logo text-glow">HA INIM</h1>
+            <p class="game-subtitle">Kosmik va Dunyo Sarguzashtlari</p>
+
+            <!-- Sozlamalar va o'yinchilarni o'z ichiga olgan scroll bo'luvchi qism -->
+            <div class="setup-content-scroll">
+                <div class="setup-grid">
+                    <!-- Chap ustun: O'yinchilar -->
+                    <div class="setup-left">
+                        <div class="setup-section">
+                            <h3>O'yinchilar soni</h3>
+                            <div class="player-count-buttons">
+                                <button type="button" class="btn-count active" data-count="2">2 O'yinchi</button>
+                                <button type="button" class="btn-count" data-count="3">3 O'yinchi</button>
+                                <button type="button" class="btn-count" data-count="4">4 O'yinchi</button>
+                            </div>
+                        </div>
+
+                        <div class="setup-section">
+                            <h3>Explorer Sozlamalari</h3>
+                            <div id="players-config-list" class="config-list">
+                                <!-- JS orqali yaratiladi -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- O'ng ustun: O'yin Sozlamalari (Ichki scroll bilan) -->
+                    <div class="setup-right-scroll">
+                        <div class="setup-right-options">
+                            <div class="setup-section">
+                                <h3>Doska Xaritasi</h3>
+                                <div class="map-selection-buttons">
+                                    <button type="button" class="btn-map active" data-map="serpentine">Katta Odyssey</button>
+                                    <button type="button" class="btn-map" data-map="spiral">Spiral Yo'l</button>
+                                    <button type="button" class="btn-map" data-map="wave">Sinsimon Kometalar</button>
+                                    <button type="button" class="btn-map" data-map="urgut">Urgut Mahallalari</button>
+                                </div>
+                            </div>
+
+                            <div class="setup-section">
+                                <h3>O'yin Mavzusi (Vizual)</h3>
+                                <div class="theme-selection-buttons">
+                                    <button type="button" class="btn-theme active" data-theme="space">Kosmos</button>
+                                    <button type="button" class="btn-theme" data-theme="jungle">Changalzor (Jungle)</button>
+                                    <button type="button" class="btn-theme" data-theme="cities">Mashhur Shaharlar</button>
+                                </div>
+                            </div>
+
+                            <div class="setup-section">
+                                <h3>Qadamlar soni</h3>
+                                <div class="steps-selection-buttons">
+                                    <button type="button" class="btn-steps" data-steps="120">120</button>
+                                    <button type="button" class="btn-steps active" data-steps="150">150</button>
+                                    <button type="button" class="btn-steps" data-steps="180">180</button>
+                                    <button type="button" class="btn-steps" data-steps="200">200</button>
+                                </div>
+                            </div>
+
+                            <div class="setup-section">
+                                <h3>Zar (Zarik) Rejimi</h3>
+                                <div class="dice-mode-buttons">
+                                    <button type="button" class="btn-dice-mode active" data-mode="auto">Virtual (Avtomatik)</button>
+                                    <button type="button" class="btn-dice-mode" data-mode="manual">Qo'lda (Haqiqiy Zarik)</button>
+                                </div>
+                            </div>
+
+                            <div class="setup-section">
+                                <h3>Tuzoqlar va Xavflar</h3>
+                                <div class="hazard-level-buttons">
+                                    <button type="button" class="btn-hazard" data-level="low">Kam</button>
+                                    <button type="button" class="btn-hazard active" data-level="medium">O'rtacha</button>
+                                    <button type="button" class="btn-hazard" data-level="high">Ko'p</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="setup-footer-row">
+                <button id="start-game-btn" class="btn btn-primary btn-glow">MISSİYANI BOSHLASH</button>
+                <button id="btn-multiplayer-open" class="btn btn-online">🌐 Onlayn O'ynash</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- O'YIN EKRANI -->
+    <div id="game-screen" class="screen">
+        <!-- Top HUD -->
+        <header class="hud-top glass-panel">
+            <div class="hud-element turn-info">
+                <span class="hud-label">RAUND</span>
+                <span id="hud-turn-count" class="hud-value">1</span>
+            </div>
+            
+            <div class="hud-element active-player-panel">
+                <span class="hud-label">FAOL KOSMONAVT</span>
+                <div class="active-player-display">
+                    <div id="current-player-token-indicator" class="mini-token">🚀</div>
+                    <span id="current-player-name" class="hud-value text-glow">Explorer 1</span>
+                </div>
+            </div>
+
+            <div class="hud-element event-ticker">
+                <span class="hud-label">ALOQA KANALI</span>
+                <div class="ticker-box">
+                    <span id="event-text" class="ticker-message">Missiya boshlandi! Zarni tashlang.</span>
+                </div>
+            </div>
+
+            <!-- Leaderboard -->
+            <div class="hud-element leaderboard-panel">
+                <span class="hud-label">PESHQADAMLAR</span>
+                <div id="hud-leaderboard" class="mini-leaderboard">
+                    <!-- Dinamik ravishda to'ldiriladi -->
+                </div>
+            </div>
+        </header>
+
+        <!-- Doska Oynasi -->
+        <div id="board-viewport" class="board-viewport">
+            <div id="board-container" class="board-container">
+                <!-- SVG yo'lak chiziqlari -->
+                <svg id="board-path-svg" class="board-svg-overlay"></svg>
+                
+                <div id="tiles-layer"></div>
+                <div id="decorations-layer"></div>
+                <div id="tokens-layer"></div>
+                <div id="particles-layer"></div>
+            </div>
+        </div>
+
+        <!-- Kamera Boshqaruvi -->
+        <div class="camera-controls">
+            <button id="btn-focus-player" class="btn-icon" title="Kamerani faol o'yinchiga qaratish">🎯</button>
+            <button id="btn-zoom-in" class="btn-icon" title="Yaqinlashtirish">+</button>
+            <button id="btn-zoom-out" class="btn-icon" title="Uzoqlashtirish">-</button>
+        </div>
+
+        <!-- Pastki Panel va Zarik Boshqaruvi -->
+        <footer class="hud-bottom glass-panel">
+            <!-- Markaziy Zar Bo'limi -->
+            <div class="dice-section-wrapper">
+                <!-- Qo'lda kiritish paneli (Faqat Real Zarik rejimida faollashadi) -->
+                <div id="manual-dice-panel" class="manual-dice-entry glass-panel hidden">
+                    <span class="manual-dice-label">Zar natijasini bosing:</span>
+                    <div class="manual-dice-buttons">
+                        <button class="btn-manual-roll" data-val="1">1</button>
+                        <button class="btn-manual-roll" data-val="2">2</button>
+                        <button class="btn-manual-roll" data-val="3">3</button>
+                        <button class="btn-manual-roll" data-val="4">4</button>
+                        <button class="btn-manual-roll" data-val="5">5</button>
+                        <button class="btn-manual-roll" data-val="6">6</button>
+                    </div>
+                </div>
+
+                <!-- 3D Zar Animatsiyasi (Avtomatik rejimda faollashadi) -->
+                <div id="dice-scene" class="scene">
+                    <div id="dice-cube" class="cube">
+                        <div class="cube-face face-1"><span class="pip"></span></div>
+                        <div class="cube-face face-2"><span class="pip"></span><span class="pip"></span></div>
+                        <div class="cube-face face-3"><span class="pip"></span><span class="pip"></span><span class="pip"></span></div>
+                        <div class="cube-face face-4">
+                            <div class="pip-row"><span class="pip"></span><span class="pip"></span></div>
+                            <div class="pip-row"><span class="pip"></span><span class="pip"></span></div>
+                        </div>
+                        <div class="cube-face face-5">
+                            <div class="pip-row"><span class="pip"></span><span class="pip"></span></div>
+                            <div class="pip-row central"><span class="pip"></span></div>
+                            <div class="pip-row"><span class="pip"></span><span class="pip"></span></div>
+                        </div>
+                        <div class="cube-face face-6">
+                            <div class="pip-row"><span class="pip"></span><span class="pip"></span></div>
+                            <div class="pip-row"><span class="pip"></span><span class="pip"></span></div>
+                            <div class="pip-row"><span class="pip"></span><span class="pip"></span></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button id="roll-dice-btn" class="btn btn-primary btn-glow-pulse">ZAR TASHLLASH</button>
+            </div>
+        </footer>
+    </div>
+
+    <!-- QOIDALAR PANELI -->
+    <div id="rules-modal" class="modal-overlay">
+        <div class="modal-content glass-panel">
+            <h2>HA INIM QOIDALARI</h2>
+            <div class="rules-body">
+                <p><strong>HA INIM</strong> - qiziqarli poyga va sarguzasht o'yini! Marra chizig'iga birinchi bo'lib yetib borgan o'yinchi g'olib hisoblanadi.</p>
+                
+                <h3>🚀 Asosiy Qoidalar</h3>
+                <ul>
+                    <li>Kosmik zarni tashlang yoki haqiqiy jismoniy zardagi raqamni kiritib oldinga harakatlaning.</li>
+                    <li>Xarita <strong>tanlangan qadamlar miqdoridan</strong> iborat bo'lib, turli xil sayyoralardan yoki Urgut mahallalaridan o'tadi.</li>
+                    <li>Eng oxirgi katak (Galaktika/Urgut Markazi) ga birinchi bo'lib aniq qadam bilan kelgan o'yinchi missiyani muvaffaqiyatli yakunlaydi.</li>
+                </ul>
+
+                <h3>🌌 Checkpoint Himoyasi (Har 25 katakda)</h3>
+                <ul>
+                    <li>Himoya nuqtalari <strong>25, 50, 75, 100, va 125-kataklarda</strong> joylashgan.</li>
+                    <li>Ushbu checkpointlardan o'tganingizdan so'ng, qora tuynuk yoki boshqa xavflar sizni ushbu checkpointdan ortga qaytara olmaydi!</li>
+                </ul>
+
+                <h3>☄️ Maxsus Kataklar (Bonus va Tuzoqlar)</h3>
+                <ul>
+                    <li><strong>🚀 Raketa Tezlashuvi / 🛸 O'zga Sayyoralik Yordami:</strong> Oldinga katta bonus qadamlar.</li>
+                    <li><strong>☄️ Meteor / 🕳 Qora Tuynuk:</strong> Gravitatsiya ta'sirida ortga tortilish.</li>
+                    <li><strong>🌌 Koinot Portal / ⭐ Warp Darvozasi:</strong> Boshqa katakka teleportatsiya.</li>
+                    <li><strong>Space Station:</strong> Energiya manbai! Zarni yana bir bor tekin tashlang.</li>
+                    <li><strong>❄️ Muzlagan Sayyora:</strong> Dvigatel muzladi! Navbatdagi yurishni o'tkazib yuboring.</li>
+                    <li><strong>🔥 Quyosh Bo'roni:</strong> Oxirgi o'tgan checkpoint planetangizga qaytib keting.</li>
+                </ul>
+            </div>
+            <button id="close-rules-btn" class="btn btn-primary">TUSHUNARLI</button>
+        </div>
+    </div>
+
+    <!-- G'ALABA EKRANI -->
+    <div id="win-modal" class="modal-overlay">
+        <div class="modal-content glass-panel win-card text-center">
+            <div class="celebration-emojis">🏆👑🌌</div>
+            <h1 class="text-glow animate-pulse">MISSIYA MUVAFFAQIYATLI YAKUNLANDI</h1>
+            <p class="winner-message"><span id="winner-name" class="text-glow">O'yinchi</span> marra chizig'iga eson-omon yetib keldi!</p>
+            
+            <div class="leaderboard-section">
+                <h3>Yakuniy Missiya Jadvali</h3>
+                <div id="win-leaderboard" class="final-leaderboard">
+                    <!-- Dinamik to'ldiriladi -->
+                </div>
+            </div>
+
+            <div class="modal-buttons">
+                <button id="btn-play-again" class="btn btn-primary btn-glow">YANA O'YNASH</button>
+                <button id="btn-win-setup" class="btn btn-secondary">YANGI MISSIYA</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ONLINE MULTIPLAYER MODAL -->
+    <div id="multiplayer-modal" class="modal-overlay">
+        <div class="modal-content glass-panel mp-modal-content">
+            <h2 class="text-glow" style="font-family:var(--font-sci-fi);margin-bottom:8px;">🌐 Onlayn O'yin</h2>
+            <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:20px;">Do'stingiz bilan bir xona kodini ulashing</p>
+
+            <div id="mp-status-bar" class="mp-status">
+                <span id="mp-status-dot" class="mp-dot"></span>
+                <span id="mp-status-text">Ulanmagan</span>
+            </div>
+
+            <!-- HOST qismi -->
+            <div class="mp-section">
+                <h3>🏠 Xona Yaratish (Host)</h3>
+                <button id="btn-create-room" class="btn btn-primary">Yangi Xona Ochish</button>
+                <div id="room-code-display" class="room-code-box hidden">
+                    <span>Xona Kodi:</span>
+                    <strong id="room-code-value">----</strong>
+                    <button id="btn-copy-code" class="btn btn-secondary" title="Nusxalash">📋 Nusxala</button>
+                </div>
+                <div id="mp-waiting-msg" class="mp-hint hidden">⏳ Do'stingiz ulanishini kutmoqda...</div>
+            </div>
+
+            <div class="mp-divider">yoki</div>
+
+            <!-- GUEST qismi -->
+            <div class="mp-section">
+                <h3>🔗 Xonaga Kirish (Mehmon)</h3>
+                <div class="mp-join-row">
+                    <input id="room-code-input" type="text" placeholder="Xona kodini kiriting" maxlength="20" class="mp-input" />
+                    <button id="btn-join-room" class="btn btn-primary">Ulanish</button>
+                </div>
+            </div>
+
+            <!-- Ulanganlar ro'yxati -->
+            <div id="mp-peers-list" class="mp-peers hidden">
+                <h4>Ulangan o'yinchilar:</h4>
+                <div id="mp-peers-inner"></div>
+            </div>
+
+            <div class="mp-modal-footer">
+                <button id="btn-mp-start-online" class="btn btn-primary btn-glow hidden">🚀 O'yinni Boshlash</button>
+                <button id="btn-mp-close" class="btn btn-secondary">Yopish</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="multiplayer.js"></script>
+</body>
+</html>
