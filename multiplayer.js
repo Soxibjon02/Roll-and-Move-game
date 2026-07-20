@@ -346,7 +346,7 @@ function mpJoinRoom(shortCode) {
 
     mpPeer.on("open", function() {
         var hostPeerId = "HAINIM-" + shortCode;
-        mpHostConn = mpPeer.connect(hostPeerId, { reliable: true, serialization: "json" });
+        mpHostConn = mpPeer.connect(hostPeerId, { reliable: true });
 
         mpHostConn.on("open", function() {
             mpIsOnline = true;
