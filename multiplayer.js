@@ -23,9 +23,6 @@ let mpIsOnline     = false;
 let mpMyPlayerIdx  = -1;   // Bu qurilma qaysi o yinchini boshqaradi
 
 const MP_CONFIG = {
-    host: "0.peerjs.com",
-    port: 443,
-    secure: true,
     debug: 1,
     config: {
         iceServers: [
