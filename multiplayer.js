@@ -83,18 +83,27 @@ function mpLockDiceButton() {
     if (!mpIsOnline) return;
     var rollBtn = document.getElementById("roll-dice-btn");
     if (!rollBtn) return;
-    var isMyTurn = mpIsHost || (activePlayerIdx === mpMyPlayerIdx);
+    var isMyTurn = (activePlayerIdx === mpMyPlayerIdx);
     var blocked  = !isMyTurn || isRolling || isMoving;
     rollBtn.disabled = blocked;
     rollBtn.style.opacity = blocked ? "0.4" : "1";
 
     var hintEl = document.getElementById("mp-turn-hint");
     if (hintEl) {
-        if (!isMyTurn && gameConfig && gameConfig.players) {
-            var ap = gameConfig.players[activePlayerIdx];
-            hintEl.textContent = (ap ? ap.name : "Boshqa o yinchi") + " navbati...";
+        if (isMyTurn) {
+            hintEl.innerHTML = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#00ff88;box-shadow:0 0 8px #00ff88;margin-right:6px;"></span>Sizning navbatingiz!';
+            hintEl.style.borderColor = "rgba(0, 255, 136, 0.4)";
+            hintEl.style.background = "rgba(0, 255, 136, 0.08)";
+            hintEl.style.color = "#00ff88";
         } else {
-            hintEl.textContent = "Sizning navbatingiz!";
+            var name = "Boshqa o'yinchi";
+            if (gameConfig && gameConfig.players && gameConfig.players[activePlayerIdx]) {
+                name = gameConfig.players[activePlayerIdx].name;
+            }
+            hintEl.innerHTML = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ff4444;box-shadow:0 0 8px #ff4444;margin-right:6px;"></span>' + name + ' navbati...';
+            hintEl.style.borderColor = "rgba(255, 68, 68, 0.4)";
+            hintEl.style.background = "rgba(255, 68, 68, 0.08)";
+            hintEl.style.color = "#ff4444";
         }
         hintEl.style.display = "block";
     }
@@ -109,7 +118,7 @@ function mpSerializeState() {
         gameConfig.players.forEach(function(p) {
             players.push({
                 name:         p.name,
-                emoji:        p.emoji,
+                emoji:        p.emoji || p.token,
                 position:     p.position,
                 checkpoint:   p.checkpoint,
                 skipNextTurn: p.skipNextTurn,
@@ -134,14 +143,38 @@ function mpSerializeState() {
 function mpApplyState(data) {
     if (!data || data.type !== "STATE_SYNC") return;
 
-    if (data.players && gameConfig && gameConfig.players) {
-        data.players.forEach(function(remote, i) {
-            if (gameConfig.players[i]) {
-                gameConfig.players[i].position     = remote.position;
-                gameConfig.players[i].checkpoint   = remote.checkpoint;
-                gameConfig.players[i].skipNextTurn = remote.skipNextTurn;
-            }
-        });
+    // Set configuration variables for guest
+    if (data.mapType && gameConfig) gameConfig.mapType = data.mapType;
+    if (data.totalSteps && gameConfig) gameConfig.totalSteps = data.totalSteps;
+    if (data.hazardLevel && gameConfig) gameConfig.hazardLevel = data.hazardLevel;
+
+    // Initialize or rebuild boardTiles on guest side
+    if (typeof boardTiles === "undefined" || boardTiles.length === 0) {
+        if (typeof buildBoardData === "function") buildBoardData();
+    }
+
+    if (data.players && gameConfig) {
+        if (!gameConfig.players || gameConfig.players.length !== data.players.length) {
+            gameConfig.players = data.players.map(function(p, i) {
+                return {
+                    id: i,
+                    name: p.name,
+                    token: p.emoji,
+                    color: p.color,
+                    position: p.position,
+                    checkpoint: p.checkpoint,
+                    skipNextTurn: p.skipNextTurn
+                };
+            });
+        } else {
+            data.players.forEach(function(remote, i) {
+                if (gameConfig.players[i]) {
+                    gameConfig.players[i].position     = remote.position;
+                    gameConfig.players[i].checkpoint   = remote.checkpoint;
+                    gameConfig.players[i].skipNextTurn = remote.skipNextTurn;
+                }
+            });
+        }
     }
 
     activePlayerIdx = data.activePlayerIdx;
