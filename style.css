@@ -1851,17 +1851,44 @@ body.light-mode .btn-online {
 }
 
 /* Mobil moslashuvchanlik - Onlayn o'yin oynasi */
-@media (max-width: 480px) {
+@media (max-width: 520px) {
+    .mp-modal-content {
+        width: 95vw;
+        max-width: 95vw;
+        padding: 18px 14px;
+        gap: 12px;
+        max-height: 92vh;
+        overflow-y: auto;
+    }
     .mp-join-row {
         flex-direction: column;
-        gap: 10px;
+        gap: 8px;
     }
-    .mp-join-row .btn {
+    .mp-join-row .btn,
+    .mp-join-row button {
         width: 100%;
         padding: 12px;
+        font-size: 0.9rem;
     }
-    .mp-modal-content {
-        padding: 20px 15px;
+    .mp-input {
+        width: 100%;
+        box-sizing: border-box;
+        font-size: 0.9rem;
+        padding: 12px 14px;
+    }
+    .mp-section {
+        padding: 12px;
+    }
+    .mp-section h3 {
+        font-size: 0.85rem;
+    }
+    .room-code-box {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    .room-code-box strong {
+        font-size: 1.1rem;
     }
 }
+
 

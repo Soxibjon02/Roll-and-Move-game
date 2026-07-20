@@ -1423,8 +1423,11 @@ document.getElementById("btn-theme-mode").addEventListener("click", function() {
 
 // Ekran bosilganda yurish animatsiyasini o'tkazib yuborish (Tezlashtirish)
 function handleGlobalSkipRequest(e) {
+    // Mobil brauzerda e.target text node bo'lishi mumkin, closest yo'q bo'lishi mumkin
+    var target = e.target;
+    if (!target || typeof target.closest !== "function") return;
     // Agar foydalanuvchi biron bir boshqaruv tugmasi yoki sozlamani bossa, o'tkazib yubormaslik
-    if (e.target.closest("button") || e.target.closest(".dropdown-content") || e.target.closest(".manual-dice-entry")) {
+    if (target.closest("button") || target.closest(".dropdown-content") || target.closest(".manual-dice-entry") || target.closest(".modal-overlay")) {
         return;
     }
     if (isMoving && typeof skipCurrentMoveFn === "function") {
